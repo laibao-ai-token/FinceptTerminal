@@ -5,6 +5,7 @@
 #include "services/markets/MarketSearchService.h"
 #include "ui/theme/Theme.h"
 
+#include <QApplication>
 #include <QDate>
 #include <QDateEdit>
 #include <QEvent>
@@ -18,6 +19,7 @@
 #include <QKeyEvent>
 #include <QLabel>
 #include <QListWidgetItem>
+#include <QLocale>
 #include <QMessageBox>
 #include <QPointer>
 #include <QPushButton>
@@ -106,13 +108,32 @@ CreatePortfolioDialog::CreatePortfolioDialog(QWidget* parent) : QDialog(parent) 
                                        "QPushButton:hover { background:%2; }")
                                    .arg(ui::colors::AMBER(), ui::colors::WARNING(), ui::colors::BG_BASE()));
     connect(create_btn_, &QPushButton::clicked, this, [this]() {
-        if (!name_edit_->text().trimmed().isEmpty())
-            accept();
+        // Was a silent no-op on an empty name — the button simply did nothing
+        // and the user had no idea why.
+        if (name_edit_->text().trimmed().isEmpty()) {
+            name_edit_->setPlaceholderText(tr("A portfolio name is required"));
+            name_edit_->setStyleSheet(QString("border:1px solid %1;").arg(ui::colors::NEGATIVE()));
+            name_edit_->setFocus();
+            return;
+        }
+        accept();
     });
     btn_layout->addWidget(create_btn_);
 
     layout->addLayout(btn_layout);
 
+    // Explicit tab order — the default order follows construction, which puts
+    // the buttons before the combo here.
+    setTabOrder(name_edit_, owner_edit_);
+    setTabOrder(owner_edit_, currency_cb_);
+    setTabOrder(currency_cb_, create_btn_);
+    setTabOrder(create_btn_, cancel_btn_);
+
+    name_edit_->setAccessibleName(tr("Portfolio name"));
+    owner_edit_->setAccessibleName(tr("Portfolio owner"));
+    currency_cb_->setAccessibleName(tr("Reporting currency"));
+
+    create_btn_->setDefault(true); // Enter creates
     name_edit_->setFocus();
 }
 
@@ -203,6 +224,12 @@ ConfirmDeleteDialog::ConfirmDeleteDialog(const QString& portfolio_name, QWidget*
     btn_layout->addWidget(delete_btn_);
 
     layout->addLayout(btn_layout);
+
+    // CANCEL is the default on a destructive dialog: Enter must not delete.
+    setTabOrder(cancel_btn_, delete_btn_);
+    cancel_btn_->setDefault(true);
+    cancel_btn_->setFocus();
+    delete_btn_->setAccessibleName(tr("Confirm deletion"));
 }
 
 void ConfirmDeleteDialog::changeEvent(QEvent* event) {
@@ -299,31 +326,64 @@ AddAssetDialog::AddAssetDialog(QWidget* parent) : QDialog(parent) {
                                     "QPushButton:hover { background:%1; }")
                                 .arg(ui::colors::POSITIVE(), ui::colors::BG_BASE()));
     connect(add_btn_, &QPushButton::clicked, this, [this]() {
-        if (!symbol_edit_->text().trimmed().isEmpty() && quantity() > 0 && price() > 0)
-            accept();
+        // Point at the offending field instead of doing nothing.
+        const QString err_style = QString("border:1px solid %1;").arg(ui::colors::NEGATIVE());
+        if (symbol_edit_->text().trimmed().isEmpty()) {
+            symbol_edit_->setStyleSheet(err_style);
+            symbol_edit_->setPlaceholderText(tr("A ticker is required"));
+            symbol_edit_->setFocus();
+            return;
+        }
+        if (quantity() <= 0) {
+            quantity_edit_->setStyleSheet(err_style);
+            quantity_edit_->setPlaceholderText(tr("Quantity must be greater than 0"));
+            quantity_edit_->setFocus();
+            return;
+        }
+        if (price() <= 0) {
+            price_edit_->setStyleSheet(err_style);
+            price_edit_->setPlaceholderText(tr("Price must be greater than 0"));
+            price_edit_->setFocus();
+            return;
+        }
+        accept();
     });
     btn_layout->addWidget(add_btn_);
 
     layout->addLayout(btn_layout);
 
-    // ── Search dropdown (floats over the dialog, parented to this) ────────────
     search_frame_ = new QFrame(this);
+    search_frame_->setWindowFlags(Qt::Tool | Qt::FramelessWindowHint | Qt::NoDropShadowWindowHint);
+    search_frame_->setAttribute(Qt::WA_ShowWithoutActivating);
     search_frame_->setObjectName("assetSearchFrame");
     search_frame_->setStyleSheet(
         QString("QFrame#assetSearchFrame { background:%1; border:1px solid %2; border-top:none; }")
             .arg(ui::colors::BG_SURFACE(), ui::colors::BORDER_MED()));
     search_frame_->hide();
 
+    // Hide dropdown when app loses focus
+    connect(qApp, &QApplication::focusChanged, this, [this](QWidget*, QWidget* now) {
+        if (search_frame_->isVisible()) {
+            if (!now || (now != symbol_edit_ && !search_frame_->isAncestorOf(now) && now != search_list_)) {
+                search_frame_->hide();
+            }
+        }
+    });
+
     auto* frame_layout = new QVBoxLayout(search_frame_);
     frame_layout->setContentsMargins(0, 0, 0, 0);
     frame_layout->setSpacing(0);
 
     search_list_ = new QListWidget(search_frame_);
-    search_list_->setStyleSheet(QString("QListWidget { background:transparent; border:none; outline:none; }"
+    search_list_->setStyleSheet(QString("QListWidget { background:%1; border:none; outline:none; }"
                                         "QListWidget::item { padding:0; border:none; background:transparent; }"
-                                        "QListWidget::item:selected { background:%1; border-left:3px solid %2; }")
-                                    .arg(ui::colors::BORDER_DIM(), ui::colors::AMBER()));
+                                        "QListWidget::item:selected { background:%2; border-left:3px solid %3; }"
+                                        "QScrollBar:vertical { background:%1; width:6px; margin:0; }"
+                                        "QScrollBar::handle:vertical { background:%2; min-height:15px; }"
+                                        "QScrollBar::add-line:vertical, QScrollBar::sub-line:vertical { height:0; }")
+                                    .arg(ui::colors::BG_SURFACE(), ui::colors::BORDER_DIM(), ui::colors::AMBER()));
     search_list_->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
+    search_list_->setVerticalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     search_list_->setCursor(Qt::PointingHandCursor);
     frame_layout->addWidget(search_list_);
 
@@ -339,9 +399,20 @@ AddAssetDialog::AddAssetDialog(QWidget* parent) : QDialog(parent) {
             fire_search(pending_query_);
     });
 
+    setTabOrder(symbol_edit_, quantity_edit_);
+    setTabOrder(quantity_edit_, price_edit_);
+    setTabOrder(price_edit_, add_btn_);
+    setTabOrder(add_btn_, cancel_btn_);
+    symbol_edit_->setAccessibleName(tr("Ticker symbol"));
+    quantity_edit_->setAccessibleName(tr("Quantity to buy"));
+    price_edit_->setAccessibleName(tr("Purchase price per share"));
+    add_btn_->setDefault(true);
+
     connect(symbol_edit_, &QLineEdit::textChanged, this, [this](const QString& text) {
         if (selecting_)
             return;
+        // Clear any validation highlight as soon as the user edits the field.
+        symbol_edit_->setStyleSheet(QString());
         const QString q = text.trimmed();
         if (q.length() < 2) {
             search_debounce_->stop();
@@ -384,7 +455,7 @@ void AddAssetDialog::show_results(const QList<fincept::services::MarketSearchSer
     if (results.isEmpty()) {
         auto* item = new QListWidgetItem(search_list_);
         item->setFlags(item->flags() & ~Qt::ItemIsSelectable);
-        auto* row = new QWidget(this);
+        auto* row = new QWidget(search_list_);
         row->setStyleSheet("background:transparent;");
         auto* rl = new QHBoxLayout(row);
         rl->setContentsMargins(10, 6, 10, 6);
@@ -423,7 +494,7 @@ void AddAssetDialog::show_results(const QList<fincept::services::MarketSearchSer
         auto* item = new QListWidgetItem(search_list_);
         item->setData(Qt::UserRole, yf_sym);
 
-        auto* row = new QWidget(this);
+        auto* row = new QWidget(search_list_);
         row->setStyleSheet("background:transparent;");
         auto* hl = new QHBoxLayout(row);
         hl->setContentsMargins(10, 4, 10, 4);
@@ -455,7 +526,7 @@ void AddAssetDialog::show_results(const QList<fincept::services::MarketSearchSer
         auto* type_lbl = new QLabel(type.toUpper());
         type_lbl->setStyleSheet(QString("color:%1; font-size:9px; font-weight:700;"
                                         "font-family:'Consolas',monospace; background:%2;"
-                                        "padding:1px 4px; border-radius:2px;")
+                                        "padding:1px 4px;")
                                     .arg(ui::colors::AMBER(), ui::colors::BORDER_DIM()));
         hl->addWidget(type_lbl);
 
@@ -471,6 +542,22 @@ void AddAssetDialog::show_results(const QList<fincept::services::MarketSearchSer
     search_frame_->raise();
 }
 
+void AddAssetDialog::preset(const QString& symbol, double price) {
+    if (symbol.isEmpty())
+        return;
+    // selecting_ suppresses the textChanged handler so setting the field does
+    // not immediately fire a search for a ticker we already resolved.
+    selecting_ = true;
+    symbol_edit_->setText(symbol);
+    selecting_ = false;
+    search_debounce_->stop();
+    search_frame_->hide();
+    if (price > 0.0)
+        price_edit_->setText(QString::number(price, 'f', 2));
+    quantity_edit_->setFocus();
+    quantity_edit_->selectAll();
+}
+
 void AddAssetDialog::select_result(const QString& sym) {
     selecting_ = true;
     symbol_edit_->setText(sym);
@@ -483,9 +570,9 @@ void AddAssetDialog::select_result(const QString& sym) {
 
 void AddAssetDialog::position_dropdown() {
     // Place the dropdown directly below the symbol_edit_ row
-    const QPoint origin = symbol_edit_->mapTo(this, QPoint(0, symbol_edit_->height()));
+    const QPoint origin = symbol_edit_->mapToGlobal(QPoint(0, symbol_edit_->height()));
     const int w = symbol_edit_->width() + 60; // a bit wider to show exchange column
-    const int rows = std::min(search_list_->count(), kAssetSearchLimit);
+    const int rows = std::min(search_list_->count(), 6);
     const int h = rows * 30 + 2;
     search_frame_->setGeometry(origin.x(), origin.y(), w, h);
 }
@@ -524,6 +611,13 @@ void AddAssetDialog::changeEvent(QEvent* event) {
     if (event->type() == QEvent::LanguageChange)
         retranslateUi();
     QDialog::changeEvent(event);
+}
+
+void AddAssetDialog::moveEvent(QMoveEvent* event) {
+    QDialog::moveEvent(event);
+    if (search_frame_ && search_frame_->isVisible()) {
+        position_dropdown();
+    }
 }
 
 void AddAssetDialog::retranslateUi() {
@@ -583,7 +677,7 @@ SellAssetDialog::SellAssetDialog(const QString& symbol, double held_qty, QWidget
         QString("color:%1; font-size:13px; font-weight:700; letter-spacing:1px;").arg(ui::colors::NEGATIVE()));
     layout->addWidget(title_label_);
 
-    held_label_ = new QLabel(tr("Currently holding: %1 shares").arg(held_qty_));
+    held_label_ = new QLabel(tr("Currently holding: %1 shares").arg(QLocale().toString(held_qty_, 'f', 2)));
     held_label_->setStyleSheet(QString("color:%1; font-size:10px;").arg(ui::colors::TEXT_TERTIARY()));
     layout->addWidget(held_label_);
 
@@ -591,7 +685,7 @@ SellAssetDialog::SellAssetDialog(const QString& symbol, double held_qty, QWidget
     form->setSpacing(8);
 
     quantity_edit_ = new QLineEdit;
-    quantity_edit_->setPlaceholderText(tr("Max %1").arg(held_qty_));
+    quantity_edit_->setPlaceholderText(tr("Max %1").arg(QLocale().toString(held_qty_, 'f', 2)));
     quantity_row_label_ = new QLabel(tr("Quantity:"));
     form->addRow(quantity_row_label_, quantity_edit_);
 
@@ -625,12 +719,46 @@ SellAssetDialog::SellAssetDialog(const QString& symbol, double held_qty, QWidget
                                      "QPushButton:hover { background:%1; }")
                                  .arg(ui::colors::NEGATIVE(), ui::colors::TEXT_PRIMARY()));
     connect(sell_btn_, &QPushButton::clicked, this, [this]() {
-        if (quantity() > 0 && quantity() <= held_qty_ && price() > 0)
-            accept();
+        // Silent no-op previously — in particular, over-selling looked like a
+        // dead button rather than a rejected input.
+        const QString err_style = QString("border:1px solid %1;").arg(ui::colors::NEGATIVE());
+        if (quantity() <= 0) {
+            quantity_edit_->setStyleSheet(err_style);
+            quantity_edit_->setPlaceholderText(tr("Quantity must be greater than 0"));
+            quantity_edit_->setFocus();
+            return;
+        }
+        if (quantity() > held_qty_) {
+            quantity_edit_->setStyleSheet(err_style);
+            quantity_edit_->clear();
+            quantity_edit_->setPlaceholderText(tr("You only hold %1").arg(QLocale().toString(held_qty_, 'f', 2)));
+            quantity_edit_->setFocus();
+            return;
+        }
+        if (price() <= 0) {
+            price_edit_->setStyleSheet(err_style);
+            price_edit_->setPlaceholderText(tr("Price must be greater than 0"));
+            price_edit_->setFocus();
+            return;
+        }
+        accept();
     });
     btn_layout->addWidget(sell_btn_);
 
     layout->addLayout(btn_layout);
+
+    setTabOrder(quantity_edit_, price_edit_);
+    setTabOrder(price_edit_, sell_btn_);
+    setTabOrder(sell_btn_, cancel_btn_);
+    quantity_edit_->setAccessibleName(tr("Quantity to sell"));
+    price_edit_->setAccessibleName(tr("Sale price per share"));
+    sell_btn_->setDefault(true);
+
+    connect(quantity_edit_, &QLineEdit::textEdited, this,
+            [this](const QString&) { quantity_edit_->setStyleSheet(QString()); });
+    connect(price_edit_, &QLineEdit::textEdited, this,
+            [this](const QString&) { price_edit_->setStyleSheet(QString()); });
+
     quantity_edit_->setFocus();
 }
 
@@ -645,13 +773,13 @@ void SellAssetDialog::retranslateUi() {
     if (title_label_)
         title_label_->setText(tr("SELL %1").arg(symbol_));
     if (held_label_)
-        held_label_->setText(tr("Currently holding: %1 shares").arg(held_qty_));
+        held_label_->setText(tr("Currently holding: %1 shares").arg(QLocale().toString(held_qty_, 'f', 2)));
     if (quantity_row_label_)
         quantity_row_label_->setText(tr("Quantity:"));
     if (price_row_label_)
         price_row_label_->setText(tr("Price:"));
     if (quantity_edit_)
-        quantity_edit_->setPlaceholderText(tr("Max %1").arg(held_qty_));
+        quantity_edit_->setPlaceholderText(tr("Max %1").arg(QLocale().toString(held_qty_, 'f', 2)));
     if (price_edit_)
         price_edit_->setPlaceholderText(tr("Sell price"));
     if (cancel_btn_)
@@ -835,12 +963,31 @@ ImportPortfolioDialog::ImportPortfolioDialog(const QVector<portfolio::Portfolio>
                                        "QPushButton:hover { background:%1; }")
                                    .arg(ui::colors::CYAN(), ui::colors::BG_BASE()));
     connect(import_btn_, &QPushButton::clicked, this, [this]() {
-        if (!file_edit_->text().isEmpty())
-            accept();
+        if (file_edit_->text().isEmpty()) {
+            status_label_->setText(tr("Choose a JSON file first — press BROWSE."));
+            status_label_->setStyleSheet(QString("color:%1; font-size:9px;").arg(ui::colors::NEGATIVE()));
+            return;
+        }
+        if (merge_radio_->isChecked() && target_cb_->count() == 0) {
+            status_label_->setText(tr("No existing portfolio to merge into. Choose 'Create new' instead."));
+            status_label_->setStyleSheet(QString("color:%1; font-size:9px;").arg(ui::colors::NEGATIVE()));
+            return;
+        }
+        accept();
     });
     btn_layout->addWidget(import_btn_);
 
     layout->addLayout(btn_layout);
+
+    setTabOrder(browse_btn_, demo_dl_btn_);
+    setTabOrder(demo_dl_btn_, new_radio_);
+    setTabOrder(new_radio_, merge_radio_);
+    setTabOrder(merge_radio_, target_cb_);
+    setTabOrder(target_cb_, import_btn_);
+    setTabOrder(import_btn_, cancel_btn_);
+    browse_btn_->setAccessibleName(tr("Choose a portfolio JSON file"));
+    target_cb_->setAccessibleName(tr("Portfolio to merge into"));
+    import_btn_->setDefault(true);
 }
 
 void ImportPortfolioDialog::changeEvent(QEvent* event) {
@@ -975,12 +1122,37 @@ EditTransactionDialog::EditTransactionDialog(const portfolio::Transaction& txn, 
                                      "QPushButton:hover { background:%2; }")
                                  .arg(ui::colors::AMBER(), ui::colors::WARNING(), ui::colors::BG_BASE()));
     connect(save_btn_, &QPushButton::clicked, this, [this]() {
-        if (quantity() > 0 && price() > 0)
-            accept();
+        const QString err_style = QString("border:1px solid %1;").arg(ui::colors::NEGATIVE());
+        if (quantity() <= 0) {
+            quantity_edit_->setStyleSheet(err_style);
+            quantity_edit_->setFocus();
+            return;
+        }
+        if (price() <= 0) {
+            price_edit_->setStyleSheet(err_style);
+            price_edit_->setFocus();
+            return;
+        }
+        accept();
     });
+    connect(quantity_edit_, &QLineEdit::textEdited, this,
+            [this](const QString&) { quantity_edit_->setStyleSheet(QString()); });
+    connect(price_edit_, &QLineEdit::textEdited, this,
+            [this](const QString&) { price_edit_->setStyleSheet(QString()); });
     btn_layout->addWidget(save_btn_);
 
     layout->addLayout(btn_layout);
+
+    setTabOrder(quantity_edit_, price_edit_);
+    setTabOrder(price_edit_, date_edit_);
+    setTabOrder(date_edit_, notes_edit_);
+    setTabOrder(notes_edit_, save_btn_);
+    setTabOrder(save_btn_, cancel_btn_);
+    quantity_edit_->setAccessibleName(tr("Transaction quantity"));
+    price_edit_->setAccessibleName(tr("Transaction price"));
+    date_edit_->setAccessibleName(tr("Transaction date"));
+    save_btn_->setDefault(true);
+
     quantity_edit_->setFocus();
 }
 
@@ -1072,8 +1244,14 @@ SectorMappingDialog::SectorMappingDialog(const QVector<portfolio::HoldingWithQuo
     for (const auto& h : holdings) {
         auto* cb = new QComboBox;
         cb->addItems(kSectors);
-        // Try to pre-select based on simple heuristic
-        cb->setCurrentText("Other");
+        // Pre-select the sector we already know for this holding (from the
+        // import payload or SectorResolver). The comment here used to promise
+        // a "simple heuristic" while the code unconditionally reset every row
+        // to "Other", so opening the dialog and pressing SAVE would have wiped
+        // the existing classification of every position.
+        const int known = h.sector.isEmpty() ? -1 : cb->findText(h.sector, Qt::MatchFixedString);
+        cb->setCurrentIndex(known >= 0 ? known : cb->findText(QStringLiteral("Other")));
+        cb->setAccessibleName(tr("Sector for %1").arg(h.symbol));
         combos_[h.symbol] = cb;
 
         auto* sym_label = new QLabel(h.symbol);
@@ -1216,15 +1394,33 @@ AddDividendDialog::AddDividendDialog(const QStringList& symbols, QWidget* parent
                                        "QPushButton:hover { background:%2; }")
                                    .arg(ui::colors::CYAN(), ui::colors::TEXT_PRIMARY(), ui::colors::BG_BASE()));
     connect(record_btn_, &QPushButton::clicked, this, [this]() {
-        if (amount_edit_->text().trimmed().isEmpty()) {
-            amount_edit_->setPlaceholderText(tr("Required!"));
+        // Also reject 0 / non-numeric input — "abc" parsed to 0.0 and recorded
+        // a zero-value dividend transaction.
+        if (amount_per_share() <= 0.0) {
+            amount_edit_->clear();
+            amount_edit_->setPlaceholderText(tr("Enter an amount greater than 0"));
+            amount_edit_->setStyleSheet(QString("border:1px solid %1;").arg(ui::colors::NEGATIVE()));
+            amount_edit_->setFocus();
             return;
         }
         accept();
     });
+    connect(amount_edit_, &QLineEdit::textEdited, this,
+            [this](const QString&) { amount_edit_->setStyleSheet(QString()); });
     btn_row->addWidget(record_btn_);
 
     layout->addLayout(btn_row);
+
+    setTabOrder(symbol_cb_, amount_edit_);
+    setTabOrder(amount_edit_, date_edit_);
+    setTabOrder(date_edit_, notes_edit_);
+    setTabOrder(notes_edit_, record_btn_);
+    setTabOrder(record_btn_, cancel_btn_);
+    symbol_cb_->setAccessibleName(tr("Holding that paid the dividend"));
+    amount_edit_->setAccessibleName(tr("Dividend amount per share"));
+    date_edit_->setAccessibleName(tr("Ex-dividend date"));
+    record_btn_->setDefault(true);
+    amount_edit_->setFocus();
 }
 
 void AddDividendDialog::changeEvent(QEvent* event) {

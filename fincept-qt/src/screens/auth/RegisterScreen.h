@@ -5,6 +5,8 @@
 #include <QStackedWidget>
 #include <QWidget>
 
+class QTimer;
+
 namespace fincept::screens {
 
 /// Registration screen — Obsidian design, compact form + OTP verification.
@@ -32,6 +34,7 @@ class RegisterScreen : public QWidget {
     QLabel* form_title_ = nullptr;
     QLabel* first_name_lbl_ = nullptr;
     QLabel* last_name_lbl_ = nullptr;
+    QLabel* username_lbl_ = nullptr;
     QLabel* email_lbl_ = nullptr;
     QLabel* code_lbl_ = nullptr;
     QLabel* phone_lbl_ = nullptr;
@@ -40,6 +43,7 @@ class RegisterScreen : public QWidget {
 
     QLineEdit* first_name_ = nullptr;
     QLineEdit* last_name_ = nullptr;
+    QLineEdit* username_ = nullptr;
     QLineEdit* email_ = nullptr;
     QLineEdit* phone_ = nullptr;
     QLineEdit* country_code_ = nullptr;
@@ -65,6 +69,14 @@ class RegisterScreen : public QWidget {
     QPushButton* back_to_form_btn_ = nullptr;
     QLabel* otp_error_ = nullptr;
     QLabel* otp_email_ = nullptr;
+
+    /// Cooldown so the OTP resend link cannot be hammered. Started on every
+    /// resend; ticks the remaining seconds into the button label. Stopped in
+    /// hideEvent so the timer never runs while the screen is off-stack (P3).
+    QTimer* resend_timer_ = nullptr;
+    int resend_cooldown_left_ = 0;
+    void start_resend_cooldown();
+    void reset_resend_cooldown();
 
     void build_form_page();
     void build_otp_page();
