@@ -66,37 +66,109 @@ def backtest_optimize(
     strategy: str = "sma_crossover",
     start_date: str = "2024-01-01",
     end_date: str = "2024-12-31",
+    objective: str = "sharpe",
+    method: str = "grid",
+    param_ranges_json: str = "",
 ) -> str:
-    """Optimize strategy parameters (bt provider optimize command)."""
+    """Optimize strategy parameters (grid/random search).
+
+    objective: sharpe, total_return, max_drawdown, volatility.
+    method: grid, random.
+    param_ranges_json: optional JSON e.g. '{"fast": [5,10,20], "slow": [20,50,100]}'.
+      If empty, sensible defaults for the strategy are used.
+    """
     try:
+        import json as _json
         from bt_provider import BtProvider
+
+        defaults = {
+            "sma_crossover": {"fast": [5, 10, 20], "slow": [20, 50, 100]},
+            "ema_crossover": {"fast": [5, 10, 20], "slow": [20, 50, 100]},
+            "momentum": {"lookback": [10, 20, 60]},
+            "rsi": {"period": [7, 14, 21], "buy_threshold": [30, 40], "sell_threshold": [60, 70]},
+        }
+        if param_ranges_json.strip():
+            param_ranges = _json.loads(param_ranges_json)
+        else:
+            param_ranges = defaults.get(strategy, {"period": [10, 20, 50]})
         req = {
             "strategy": {"type": strategy, "params": {}},
             "symbols": [symbol],
             "startDate": start_date,
             "endDate": end_date,
             "initialCapital": 100000,
+            "optimizeObjective": objective,
+            "optimizeMethod": method,
+            "paramRanges": param_ranges,
         }
         return ok(BtProvider().optimize(req))
     except Exception as e:
         return err(str(e), symbol=symbol)
 
 
+def _period_to_dates(period: str, end: str = "") -> tuple:
+    """Convert '6mo'/'1y'/'3mo' style period to (start_date, end_date) ISO strings."""
+    import datetime as _dt
+
+    end_date = end or _dt.date.today().isoformat()
+    if not period:
+        start = (_dt.date.fromisoformat(end_date) - _dt.timedelta(days=365)).isoformat()
+        return start, end_date
+    p = str(period).strip().lower()
+    try:
+        if p.endswith("mo"):
+            months = max(1, int(p[:-2]))
+            d = _dt.date.fromisoformat(end_date)
+            y, m = d.year, d.month - months
+            y += (m - 1) // 12
+            m = (m - 1) % 12 + 1
+            start = _dt.date(y, m, d.day).isoformat()
+        elif p.endswith("y"):
+            years = max(1, int(p[:-1]))
+            d = _dt.date.fromisoformat(end_date)
+            start = _dt.date(d.year - years, d.month, d.day).isoformat()
+        elif p.endswith("d"):
+            days = max(1, int(p[:-1]))
+            start = (_dt.date.fromisoformat(end_date) - _dt.timedelta(days=days)).isoformat()
+        else:
+            # bare integer = days
+            days = max(1, int(p))
+            start = (_dt.date.fromisoformat(end_date) - _dt.timedelta(days=days)).isoformat()
+    except Exception:
+        start = (_dt.date.fromisoformat(end_date) - _dt.timedelta(days=365)).isoformat()
+    return start, end_date
+
+
 @mcp.tool()
 def calculate_indicator(
     symbol: str,
     indicator: str = "sma",
-    period: str = "6mo",
     length: int = 20,
+    start_date: str = "",
+    end_date: str = "",
+    period: str = "6mo",
 ) -> str:
-    """Calculate a technical indicator via bt provider. indicator e.g. sma, ema, rsi."""
+    """Calculate a technical indicator via bt provider. indicator e.g. sma, ema, rsi, macd, bbands.
+
+    length = lookback window (maps to provider's 'period'/'window' param).
+    start_date/end_date (YYYY-MM-DD) optional; if empty, period ('6mo'/'1y') is used."""
     try:
         from bt_provider import BtProvider
+
+        # provider reads request['parameters'] with keys period/window/fast/slow;
+        # map 'sma'→'ma' (provider has no 'sma' branch; else returns raw close).
+        ind = "ma" if indicator == "sma" else indicator
+        sd, ed = _period_to_dates(period, end_date)
+        if start_date:
+            sd = start_date
+        if end_date:
+            ed = end_date
         req = {
             "symbol": symbol,
-            "indicator": indicator,
-            "period": period,
-            "params": {"length": int(length)},
+            "indicator": ind,
+            "startDate": sd,
+            "endDate": ed,
+            "parameters": {"period": int(length)},
             "symbols": [symbol],
         }
         return ok(BtProvider().calculate_indicator(req))
@@ -208,22 +280,108 @@ def list_indicators() -> str:
 def indicator_signals(
     symbol: str,
     indicator: str = "sma",
-    period: str = "6mo",
     length: int = 20,
+    start_date: str = "",
+    end_date: str = "",
+    period: str = "6mo",
 ) -> str:
-    """Generate indicator signals for a symbol."""
+    """Generate indicator signals for a symbol (value up → 1, down → -1)."""
     try:
         from bt_provider import BtProvider
+
+        ind = "ma" if indicator == "sma" else indicator
+        sd, ed = _period_to_dates(period, end_date)
+        if start_date:
+            sd = start_date
+        if end_date:
+            ed = end_date
         req = {
             "symbol": symbol,
-            "indicator": indicator,
-            "period": period,
-            "params": {"length": int(length)},
+            "indicator": ind,
+            "startDate": sd,
+            "endDate": ed,
+            "parameters": {"period": int(length)},
             "symbols": [symbol],
         }
         return ok(BtProvider().indicator_signals(req))
     except Exception as e:
         return err(str(e), symbol=symbol)
+
+
+def _strategy_signals(symbol: str, strategy: str, start_date: str, end_date: str) -> dict:
+    """Compute real strategy signals from price data (not random).
+
+    Supports: sma_crossover, ema_crossover (SMA/EMA fast/slow cross),
+    momentum (12d lookback). Falls back to provider indicator signals.
+    Returns {'success': bool, 'data': {'signals': {sym: [...]}, 'generator': str}}.
+    """
+    import numpy as np
+    from bt_data import fetch_data
+    from bt_strategies import _rolling_mean, _ema
+
+    strategy = (strategy or "sma_crossover").lower()
+    try:
+        data = fetch_data([symbol], start_date, end_date)
+    except Exception as e:
+        return {"success": False, "error": f"fetch_data failed: {e}"}
+
+    if symbol not in data.columns:
+        return {"success": False, "error": f"{symbol} not in fetched data"}
+    close = data[symbol].values
+    dates = [d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d) for d in data.index]
+    n = len(close)
+
+    if strategy in ("sma_crossover", "ema_crossover"):
+        fast_n, slow_n = 20, 50
+        if len(close) < slow_n + 1:
+            return {"success": False, "error": f"not enough bars for {strategy} ({n} < {slow_n + 1})"}
+        if strategy == "sma_crossover":
+            fast = _rolling_mean(close, fast_n)
+            slow = _rolling_mean(close, slow_n)
+        else:
+            fast = _ema(close, fast_n)
+            slow = _ema(close, slow_n)
+        sig_arr = np.zeros(n)
+        for i in range(1, n):
+            if np.isnan(fast[i]) or np.isnan(slow[i]) or np.isnan(fast[i - 1]) or np.isnan(slow[i - 1]):
+                continue
+            if fast[i - 1] <= slow[i - 1] and fast[i] > slow[i]:
+                sig_arr[i] = 1
+            elif fast[i - 1] >= slow[i - 1] and fast[i] < slow[i]:
+                sig_arr[i] = -1
+        generator = f"{strategy}(fast={fast_n},slow={slow_n})"
+    elif strategy == "momentum":
+        lookback = 12
+        sig_arr = np.zeros(n)
+        for i in range(lookback, n):
+            ret = close[i] / close[i - lookback] - 1.0
+            sig_arr[i] = 1 if ret > 0 else (-1 if ret < 0 else 0)
+        generator = f"momentum(lookback={lookback})"
+    else:
+        # Unknown strategy: fall back to provider indicator signals (real data, not RAND)
+        from bt_provider import BtProvider
+
+        req = {
+            "symbol": symbol,
+            "indicator": "ma",
+            "startDate": start_date,
+            "endDate": end_date,
+            "parameters": {"period": 20},
+            "symbols": [symbol],
+        }
+        res = BtProvider().indicator_signals(req)
+        if res.get("success"):
+            res.setdefault("data", {})["generator"] = f"indicator-signals fallback ({strategy})"
+            return res
+        return res
+
+    return {
+        "success": True,
+        "data": {
+            "signals": {symbol: [{"date": d, "signal": int(s)} for d, s in zip(dates, sig_arr)]},
+            "generator": generator,
+        },
+    }
 
 
 @mcp.tool()
@@ -233,12 +391,15 @@ def generate_signals(
     start_date: str = "2024-01-01",
     end_date: str = "2024-12-31",
 ) -> str:
-    """Generate trading signals for strategy without full backtest equity curve bloat."""
+    """Generate trading signals for strategy without full backtest equity curve bloat.
+    Real signals: SMA/EMA crossover (golden cross → 1, death cross → -1), momentum."""
     try:
-        from bt_provider import BtProvider
-        return ok(BtProvider().generate_signals(_bt_req(symbol, strategy, start_date, end_date)))
+        res = _strategy_signals(symbol, strategy, start_date, end_date)
+        if res.get("success"):
+            return ok(res.get("data", {}))
+        return err(res.get("error", "signal generation failed"), symbol=symbol, strategy=strategy)
     except Exception as e:
-        return err(str(e), symbol=symbol)
+        return err(str(e), symbol=symbol, strategy=strategy)
 
 
 @mcp.tool()
@@ -309,29 +470,18 @@ def signals_to_paper(
     signal==0 → hold / no trade.
     """
     try:
-        from bt_provider import BtProvider
         import paper_trading as pt
 
-        raw = BtProvider().generate_signals(
-            _bt_req(symbol, strategy, start_date, end_date)
-        )
-        signals = []
-        if isinstance(raw, dict):
-            data = raw.get("data") if "data" in raw else raw
-            if isinstance(data, dict):
-                sig_map = data.get("signals") or data
-                if isinstance(sig_map, dict) and symbol in sig_map:
-                    signals = sig_map[symbol] or []
-                elif isinstance(sig_map, dict):
-                    # first symbol
-                    for _k, v in sig_map.items():
-                        if isinstance(v, list):
-                            signals = v
-                            break
-            elif isinstance(data, list):
-                signals = data
+        pt._init_db_singleton()
+        raw = _strategy_signals(symbol, strategy, start_date, end_date)
+        if not raw.get("success"):
+            return err(raw.get("error", "no signals produced"), symbol=symbol, strategy=strategy)
+        data = raw.get("data", {})
+        sig_map = data.get("signals", {})
+        signals = sig_map.get(symbol) or []
+        generator = data.get("generator", "?")
         if not signals:
-            return err("no signals produced", symbol=symbol, raw_keys=list(raw.keys()) if isinstance(raw, dict) else type(raw).__name__)
+            return err("no signals produced", symbol=symbol, generator=generator)
 
         last = signals[-1]
         sig_val = last.get("signal") if isinstance(last, dict) else last
@@ -349,6 +499,7 @@ def signals_to_paper(
         result = {
             "symbol": symbol,
             "strategy": strategy,
+            "generator": generator,
             "last_signal": last,
             "action": action,
             "quantity": float(quantity),

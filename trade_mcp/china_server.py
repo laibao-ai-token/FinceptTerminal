@@ -169,10 +169,11 @@ def hk_hist(
         sd = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:8]}" if len(start_date) == 8 else start_date
         ed = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:8]}" if len(end_date) == 8 else end_date
         # yfinance HK symbol format varies: 01810.HK works but 00700.HK doesn't;
-        # 0700.HK (4-digit) works. Try 5-digit first, then 4-digit.
+        # 0700.HK (4-digit) works. Try 5-digit first, then 4-digit (strip leading
+        # zeros and zero-pad to 4: 00700 → 0700, 00005 → 0005).
         candidates = [f"{symbol}.HK"]
-        stripped = symbol.lstrip("0")
-        if len(stripped) == 4 and f"{stripped}.HK" not in candidates:
+        stripped = symbol.lstrip("0").zfill(4)
+        if stripped != symbol and f"{stripped}.HK" not in candidates:
             candidates.append(f"{stripped}.HK")
         df = None
         yf_sym_used = candidates[0]
