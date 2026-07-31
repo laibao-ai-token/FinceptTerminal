@@ -82,10 +82,11 @@ def backtest_optimize(
         from bt_provider import BtProvider
 
         defaults = {
-            "sma_crossover": {"fast": [5, 10, 20], "slow": [20, 50, 100]},
-            "ema_crossover": {"fast": [5, 10, 20], "slow": [20, 50, 100]},
-            "momentum": {"lookback": [10, 20, 60]},
-            "rsi": {"period": [7, 14, 21], "buy_threshold": [30, 40], "sell_threshold": [60, 70]},
+            # param names must match bt_strategies: fastPeriod/slowPeriod, threshold, oversold/overbought
+            "sma_crossover": {"fastPeriod": [5, 10, 20], "slowPeriod": [20, 50, 100]},
+            "ema_crossover": {"fastPeriod": [5, 10, 20], "slowPeriod": [20, 50, 100]},
+            "momentum": {"period": [10, 20, 60], "threshold": [0.01, 0.02]},
+            "rsi": {"period": [7, 14, 21], "oversold": [25, 30], "overbought": [70, 75]},
         }
         if param_ranges_json.strip():
             param_ranges = _json.loads(param_ranges_json)
@@ -316,12 +317,14 @@ def _strategy_signals(symbol: str, strategy: str, start_date: str, end_date: str
     Returns {'success': bool, 'data': {'signals': {sym: [...]}, 'generator': str}}.
     """
     import numpy as np
-    from bt_data import fetch_data
+    from bt_data import fetch_data, was_last_fetch_synthetic
     from bt_strategies import _rolling_mean, _ema
 
     strategy = (strategy or "sma_crossover").lower()
     try:
         data = fetch_data([symbol], start_date, end_date)
+        if was_last_fetch_synthetic():
+            return {"success": False, "error": f"synthetic fallback data used for {symbol} (price fetch failed) — refusing to generate signals"}
     except Exception as e:
         return {"success": False, "error": f"fetch_data failed: {e}"}
 

@@ -130,7 +130,17 @@ def paper_positions(portfolio_id: str) -> str:
 def paper_stats(portfolio_id: str) -> str:
     """Portfolio stats: balance, pnl, trades, win_rate, fees."""
     try:
-        return ok(_pt().get_stats(portfolio_id))
+        pt = _pt()
+        stats = pt.get_stats(portfolio_id)
+        if isinstance(stats, dict):
+            # attach live balance/currency from the portfolio table
+            for p in pt.list_portfolios():
+                if p.get("id") == portfolio_id:
+                    stats["balance"] = p.get("balance", 0)
+                    stats["initial_balance"] = p.get("initial_balance", 0)
+                    stats["currency"] = p.get("currency", "")
+                    break
+        return ok(stats)
     except Exception as e:
         return err(str(e))
 

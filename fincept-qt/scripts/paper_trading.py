@@ -611,7 +611,8 @@ def get_stats(portfolio_id):
     conn = _connect()
     try:
         r = _row(conn, "SELECT COALESCE(SUM(pnl),0), COUNT(*), "
-                       "SUM(CASE WHEN pnl>0 THEN 1 ELSE 0 END), SUM(CASE WHEN pnl<0 THEN 1 ELSE 0 END), "
+                       "COALESCE(SUM(CASE WHEN pnl>0 THEN 1 ELSE 0 END),0), "
+                       "COALESCE(SUM(CASE WHEN pnl<0 THEN 1 ELSE 0 END),0), "
                        "COALESCE(MAX(pnl),0), COALESCE(MIN(pnl),0), "
                        "COALESCE(SUM(CASE WHEN pnl>0 THEN pnl ELSE 0 END),0), "
                        "COALESCE(SUM(CASE WHEN pnl<0 THEN pnl ELSE 0 END),0), "
