@@ -9,7 +9,7 @@ import os
 import requests
 from typing import Dict, Any, Optional, List
 
-BASE_URL = "https://api.frankfurter.dev"
+BASE_URL = "https://api.frankfurter.dev/v1"
 
 session = requests.Session()
 adapter = requests.adapters.HTTPAdapter(pool_connections=10, pool_maxsize=10, max_retries=3)
