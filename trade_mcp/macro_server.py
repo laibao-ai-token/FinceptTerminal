@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import pandas as pd
 from typing import Optional
 
 from mcp.server.fastmcp import FastMCP
@@ -266,6 +267,29 @@ def worldbank_gdp_per_capita(countries: str = "USA,CHN", years: int = 15) -> str
         return ok(wb.get_gdp_per_capita(countries=countries, years=int(years)))
     except Exception as e:
         return err(str(e), countries=countries)
+
+
+@mcp.tool()
+def china_bond_yield(days: int = 10) -> str:
+    """China (and US) government bond yields via akshare bond_zh_us_rate (Sina data).
+    Returns latest rows with 2y/5y/10y/30y yields for CN and US."""
+    try:
+        import akshare as ak
+
+        df = ak.bond_zh_us_rate(start_date="20200101")
+        if df is None or len(df) == 0:
+            return err("no bond yield data returned")
+        df = df.sort_values("日期").tail(max(1, int(days)))
+        df = df.replace([float("inf"), float("-inf")], None).where(pd.notna(df), None)
+        rows = df.to_dict(orient="records")
+        return ok({
+            "source": "akshare bond_zh_us_rate (Sina)",
+            "note": "percent annual yields; CN=China, US=United States",
+            "count": len(rows),
+            "data": rows,
+        })
+    except Exception as e:
+        return err(str(e), hint="bond_zh_us_rate failed")
 
 
 if __name__ == "__main__":

@@ -1,0 +1,275 @@
+{
+  "ts": "2026-07-21T17:14:25Z",
+  "servers": {
+    "market": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "16 tools",
+        "n": 16
+      },
+      {
+        "tool": "market_quote",
+        "status": "PASS",
+        "detail": "{'symbol': 'AAPL', 'price': 328.2, 'change': 1.61, 'change_percent': 0.49, 'volume': 20046168, 'high': 329.6, 'low': 322.22, 'open': 323.35, 'previous_close': 3"
+      },
+      {
+        "tool": "market_quote",
+        "status": "PASS",
+        "detail": "{'symbol': 'NVDA', 'price': 206.05, 'change': 2.77, 'change_percent': 1.36, 'volume': 58383716, 'high': 208.65, 'low': 204.01, 'open': 207.54, 'previous_close':"
+      },
+      {
+        "tool": "batch_quotes",
+        "status": "PASS",
+        "detail": "[{'symbol': 'AAPL', 'price': 328.2, 'change': 1.61, 'change_percent': 0.49, 'volume': 20046168, 'high': 329.6, 'low': 322.22, 'open': 323.35, 'previous_close': "
+      },
+      {
+        "tool": "market_history",
+        "status": "PASS",
+        "detail": "[{'timestamp': 1782100800, 'open': 297.31, 'high': 302.42, 'low': 296.76, 'close': 297.01, 'volume': 44879900}, {'timestamp': 1782187200, 'open': 297.54, 'high'"
+      },
+      {
+        "tool": "symbol_search",
+        "status": "PASS",
+        "detail": "{'results': [{'symbol': 'AAPL', 'name': 'Apple Inc.', 'exchange': 'NMS', 'type': 'EQUITY', 'currency': 'USD', 'sector': '', 'industry': 'Consumer Electronics'},"
+      },
+      {
+        "tool": "company_info",
+        "status": "PASS",
+        "detail": "{'symbol': 'AAPL', 'company_name': 'Apple Inc.', 'sector': 'Technology', 'industry': 'Consumer Electronics', 'market_cap': 4820683980800, 'pe_ratio': 39.736076,"
+      },
+      {
+        "tool": "financial_ratios",
+        "status": "PASS",
+        "detail": "{'symbol': 'AAPL', 'peRatio': 39.736076, 'forwardPE': 34.05072, 'priceToBook': 45.209366, 'priceToSales': 10.678412, 'pegRatio': 2.6279, 'debtToEquity': 79.548,"
+      },
+      {
+        "tool": "news_search",
+        "status": "PASS",
+        "detail": "{'query': 'Apple', 'count': 0, 'data': {'articles': [], 'symbol': 'Apple'}}"
+      },
+      {
+        "tool": "historical_price",
+        "status": "PASS",
+        "detail": "{'found': True, 'symbol': 'AAPL', 'price': 192.36, 'date': '2024-06-03', 'requested_date': '2024-06-03'}"
+      }
+    ],
+    "paper": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "15 tools",
+        "n": 15
+      },
+      {
+        "tool": "paper_list",
+        "status": "PASS",
+        "detail": "[{'id': 'da2c5fc4-e31a-4f0b-b0b2-ab253ca65186', 'name': 'demo-AAPL', 'initial_balance': 100000.0, 'balance': 100005.33836, 'currency': 'USD', 'leverage': 1.0, '"
+      }
+    ],
+    "research": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "14 tools",
+        "n": 14
+      },
+      {
+        "tool": "backtest_strategies",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': {'provider': 'bt', 'strategies': {'portfolio': [{'id': 'equal_weight', 'name': 'Equal Weight', 'description': 'Equal-weight allocation"
+      },
+      {
+        "tool": "list_indicators",
+        "status": "PASS",
+        "detail": "{'indicators': {'trend': [{'id': 'ma', 'name': 'Moving Average'}, {'id': 'ema', 'name': 'EMA'}, {'id': 'macd', 'name': 'MACD'}, {'id': 'adx', 'name': 'ADX'}, {'"
+      },
+      {
+        "tool": "generate_signals",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': {'signals': {'AAPL': [{'date': '2024-01-02', 'signal': 0}, {'date': '2024-01-03', 'signal': 0}, {'date': '2024-01-04', 'signal': 0}, {"
+      },
+      {
+        "tool": "signals_to_paper",
+        "status": "PASS",
+        "detail": "{'symbol': 'AAPL', 'strategy': 'sma_crossover', 'last_signal': {'date': '2024-12-30', 'signal': 0}, 'action': 'hold', 'quantity': 5.0, 'dry_run': True, 'signal_"
+      },
+      {
+        "tool": "quantstats_report",
+        "status": "PASS",
+        "detail": "{'performance': {'total_return': 0.32397732985433647, 'annualized_return': 0.768857015129361, 'trading_days': 124, 'best_day': 0.0484068203126522, 'worst_day': "
+      },
+      {
+        "tool": "calculate_indicator",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': {'indicator': 'sma', 'results': {'AAPL': [{'date': '2020-01-02', 'value': 72.3339}, {'date': '2020-01-03', 'value': 71.6307}, {'date':"
+      }
+    ],
+    "fundamentals": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "14 tools",
+        "n": 14
+      },
+      {
+        "tool": "edgar_status",
+        "status": "PASS",
+        "detail": "{'available': None, 'init': None, 'identity': 'trade-agent@localhost'}"
+      },
+      {
+        "tool": "edgar_company_info",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': {'ticker': 'AAPL', 'cik': 320193, 'name': 'Apple Inc.', 'tickers': ['AAPL'], 'industry': 'Electronic Computers', 'sic': '3571', 'fisca"
+      },
+      {
+        "tool": "fx_latest",
+        "status": "PASS",
+        "detail": "{'amount': 1.0, 'base': 'USD', 'date': '2026-07-21', 'rates': {'CNY': 6.7661, 'EUR': 0.87581}}"
+      },
+      {
+        "tool": "fx_historical",
+        "status": "PASS",
+        "detail": "{'amount': 1.0, 'base': 'USD', 'date': '2024-06-03', 'rates': {'EUR': 0.92234}}"
+      },
+      {
+        "tool": "company_news_gnews",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': [{'title': 'Apple TV is “essentially dead”? No, long live Apple TV. - Six Colors', 'description': 'Apple TV is “essentially dead”? No,"
+      }
+    ],
+    "macro": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "13 tools",
+        "n": 13
+      },
+      {
+        "tool": "fred_status",
+        "status": "PASS",
+        "detail": "configured=False"
+      },
+      {
+        "tool": "fred_latest",
+        "status": "SKIP",
+        "detail": "FRED API key not configured. Set FRED_API_KEY environment variable."
+      },
+      {
+        "tool": "worldbank_indicator",
+        "status": "PASS",
+        "detail": "{'data': [{'indicator_id': 'NY.GDP.MKTP.KD.ZG', 'indicator_name': 'GDP growth (annual %)', 'country_id': 'US', 'country_name': 'United States', 'date': '2025', "
+      },
+      {
+        "tool": "worldbank_snapshot",
+        "status": "PASS",
+        "detail": "{'country_code': 'USA', 'indicators': {'gdp_growth': {'indicator_id': 'NY.GDP.MKTP.KD.ZG', 'indicator_name': 'GDP growth (annual %)', 'country_id': 'US', 'count"
+      }
+    ],
+    "china": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "10 tools",
+        "n": 10
+      },
+      {
+        "tool": "china_status",
+        "status": "PASS",
+        "detail": "{'akshare': '1.18.64', 'scope': ['A-share / HK hist', 'HK famous spot', 'index hist', 'China policy rate (akshare macro)', 'Baidu economic news']}"
+      },
+      {
+        "tool": "hk_hist",
+        "status": "FAIL",
+        "detail": "('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+      },
+      {
+        "tool": "a_share_hist",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': [{'日期': '2024-06-03', '股票代码': '600519', '开盘': 1515.66, '收盘': 1505.05, '最高': 1516.58, '最低': 1500.77, '成交量': 30261, '成交额': 4966041477.0,"
+      },
+      {
+        "tool": "china_policy_rate",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': {'count': 218, 'tail': [{'商品': '中国央行决议报告', '日期': '2006-03-01', '今值': 5.58, '预测值': nan, '前值': 5.58}, {'商品': '中国央行决议报告', '日期': '2006-04-"
+      },
+      {
+        "tool": "index_hist",
+        "status": "FAIL",
+        "detail": "('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))"
+      }
+    ]
+  },
+  "paper_extra": [
+    {
+      "tool": "paper_list",
+      "status": "PASS",
+      "detail": "7 portfolios"
+    },
+    {
+      "tool": "paper_positions",
+      "status": "PASS",
+      "detail": "[]"
+    },
+    {
+      "tool": "paper_stats",
+      "status": "PASS",
+      "detail": "{'total_pnl': 6.67999999999995, 'win_rate': 1.0, 'total_trades': 2, 'winning_trades': 1, 'losing_trades': 0, 'largest_win': 6.67999999999995, 'largest_loss': 0."
+    },
+    {
+      "tool": "paper_orders",
+      "status": "PASS",
+      "detail": "[{'id': '6a4e95bc-1a14-4e78-bffb-5ecdf0356796', 'portfolio_id': 'da2c5fc4-e31a-4f0b-b0b2-ab253ca65186', 'symbol': 'AAPL', 'side': 'sell', 'order_type': 'market'"
+    }
+  ],
+  "summary": [
+    {
+      "server": "market",
+      "pass": 10,
+      "fail": 0,
+      "skip": 0,
+      "tools_listed": 16
+    },
+    {
+      "server": "paper",
+      "pass": 2,
+      "fail": 0,
+      "skip": 0,
+      "tools_listed": 15
+    },
+    {
+      "server": "research",
+      "pass": 7,
+      "fail": 0,
+      "skip": 0,
+      "tools_listed": 14
+    },
+    {
+      "server": "fundamentals",
+      "pass": 6,
+      "fail": 0,
+      "skip": 0,
+      "tools_listed": 14
+    },
+    {
+      "server": "macro",
+      "pass": 4,
+      "fail": 0,
+      "skip": 1,
+      "tools_listed": 13
+    },
+    {
+      "server": "china",
+      "pass": 4,
+      "fail": 2,
+      "skip": 0,
+      "tools_listed": 10
+    }
+  ],
+  "elapsed_sec": 35.6,
+  "totals": {
+    "pass": 36,
+    "fail": 2,
+    "skip": 1
+  }
+}

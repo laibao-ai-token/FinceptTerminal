@@ -13,6 +13,23 @@ from trade_mcp.common import PY, ROOT, SCRIPTS, ensure_script_paths, err, ok, tr
 ensure_script_paths()
 mcp = FastMCP("research")
 
+# 统一策略参数 — 所有引擎（bt回测 / 信号生成 / 模拟盘回放）共用同一份定义，
+# 确保回测结果与实盘信号对齐。命名对齐 bt_strategies（fastPeriod/slowPeriod/period/threshold...）。
+STRATEGY_PARAMS = {
+    "sma_crossover": {"fastPeriod": 20, "slowPeriod": 50},
+    "ema_crossover": {"fastPeriod": 20, "slowPeriod": 50},
+    "momentum": {"period": 12, "threshold": 0.0},
+    "rsi": {"period": 14, "oversold": 30, "overbought": 70},
+    "macd": {"fastPeriod": 12, "slowPeriod": 26, "signalPeriod": 9},
+    "bollinger_bands": {"period": 20, "stdDev": 2.0},
+    "mean_reversion": {"window": 20, "threshold": 2.0},
+}
+
+
+def strategy_params(strategy: str) -> dict:
+    """Get unified params for a strategy (with bt_strategies param names)."""
+    return dict(STRATEGY_PARAMS.get((strategy or "sma_crossover").lower(), {}))
+
 
 @mcp.tool()
 def backtest_run(
@@ -22,12 +39,13 @@ def backtest_run(
     end_date: str = "2024-12-31",
     initial_capital: float = 100000.0,
 ) -> str:
-    """Run portfolio backtest. strategy examples: equal_weight, sma_crossover, momentum, risk_parity."""
+    """Run portfolio backtest. strategy examples: equal_weight, sma_crossover, momentum, risk_parity.
+    Uses unified STRATEGY_PARAMS (same params as generate_signals / signals_to_paper)."""
     try:
         from bt_provider import BtProvider
         provider = BtProvider()
         req = {
-            "strategy": {"type": strategy, "params": {}},
+            "strategy": {"type": strategy, "params": strategy_params(strategy)},
             "symbols": [symbol],
             "startDate": start_date,
             "endDate": end_date,
@@ -83,10 +101,13 @@ def backtest_optimize(
 
         defaults = {
             # param names must match bt_strategies: fastPeriod/slowPeriod, threshold, oversold/overbought
-            "sma_crossover": {"fastPeriod": [5, 10, 20], "slowPeriod": [20, 50, 100]},
-            "ema_crossover": {"fastPeriod": [5, 10, 20], "slowPeriod": [20, 50, 100]},
-            "momentum": {"period": [10, 20, 60], "threshold": [0.01, 0.02]},
+            "sma_crossover": {"fastPeriod": [5, 10, 20, 40], "slowPeriod": [20, 50, 100]},
+            "ema_crossover": {"fastPeriod": [5, 10, 20, 40], "slowPeriod": [20, 50, 100]},
+            "momentum": {"period": [10, 12, 20, 60], "threshold": [0.0, 0.01, 0.02]},
             "rsi": {"period": [7, 14, 21], "oversold": [25, 30], "overbought": [70, 75]},
+            "macd": {"fastPeriod": [8, 12], "slowPeriod": [21, 26], "signalPeriod": [9]},
+            "bollinger_bands": {"period": [15, 20, 25], "stdDev": [1.5, 2.0, 2.5]},
+            "mean_reversion": {"window": [10, 20, 30], "threshold": [1.5, 2.0, 2.5]},
         }
         if param_ranges_json.strip():
             param_ranges = _json.loads(param_ranges_json)
@@ -243,7 +264,7 @@ def portfolio_nav(positions_json: str, period: str = "6mo") -> str:
 
 def _bt_req(symbol: str, strategy: str, start_date: str, end_date: str, initial_capital: float = 100000.0) -> dict:
     return {
-        "strategy": {"type": strategy, "params": {}},
+        "strategy": {"type": strategy, "params": strategy_params(strategy)},
         "symbols": [symbol],
         "startDate": start_date,
         "endDate": end_date,
@@ -335,7 +356,9 @@ def _strategy_signals(symbol: str, strategy: str, start_date: str, end_date: str
     n = len(close)
 
     if strategy in ("sma_crossover", "ema_crossover"):
-        fast_n, slow_n = 20, 50
+        p = strategy_params(strategy)
+        fast_n = int(p.get("fastPeriod", 20))
+        slow_n = int(p.get("slowPeriod", 50))
         if len(close) < slow_n + 1:
             return {"success": False, "error": f"not enough bars for {strategy} ({n} < {slow_n + 1})"}
         if strategy == "sma_crossover":
@@ -354,7 +377,8 @@ def _strategy_signals(symbol: str, strategy: str, start_date: str, end_date: str
                 sig_arr[i] = -1
         generator = f"{strategy}(fast={fast_n},slow={slow_n})"
     elif strategy == "momentum":
-        lookback = 12
+        p = strategy_params(strategy)
+        lookback = int(p.get("period", 12))
         sig_arr = np.zeros(n)
         for i in range(lookback, n):
             ret = close[i] / close[i - lookback] - 1.0

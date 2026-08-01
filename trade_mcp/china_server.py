@@ -110,9 +110,11 @@ def a_share_hist(
     start_date: str = "20240101",
     end_date: str = "20261231",
     adjust: str = "qfq",
+    max_rows: int = 80,
 ) -> str:
     """A-share daily history. symbol like 000001, 600519.
-    Tries akshare (EastMoney) first, falls back to yfinance (.SS/.SZ) if unreachable."""
+    Tries akshare (EastMoney) first, falls back to yfinance (.SS/.SZ) if unreachable.
+    max_rows: how many most-recent rows to return (0 = all). Default 80."""
     import pandas as pd
 
     # Try akshare first (works when EastMoney is reachable)
@@ -125,30 +127,36 @@ def a_share_hist(
         )
         if isinstance(data, dict) and data.get("success") is False:
             raise RuntimeError(str(data.get("error", "akshare failed")))
-        return ok(_trim_result(data, max_rows=80))
+        return ok(_trim_result(data, max_rows))
     except Exception:
         pass  # fall through to yfinance
 
-    # Fallback: yfinance with correct suffixes
+    # Fallback: yfinance — try both .SS and .SZ suffixes (don't guess):
+    # Shanghai 600/601/603/688 stocks + 5xxxxx ETFs use .SS;
+    # Shenzhen 000/001/300/301 stocks + 159xxx ETFs use .SZ.
     try:
-        # Shanghai: 600/601/603/688 prefix → .SS ; Shenzhen: 000/001/002/300 → .SZ
-        if symbol.startswith(("600", "601", "603", "688", "6")):
-            yf_sym = f"{symbol}.SS"
-        else:
-            yf_sym = f"{symbol}.SZ"
+        candidates = [f"{symbol}.SS", f"{symbol}.SZ"]
         sd = f"{start_date[:4]}-{start_date[4:6]}-{start_date[6:8]}" if len(start_date) == 8 else start_date
         ed = f"{end_date[:4]}-{end_date[4:6]}-{end_date[6:8]}" if len(end_date) == 8 else end_date
-        df = _yf_hist(yf_sym, sd, ed, auto_adjust=False)
+        df = None
+        yf_sym_used = candidates[0]
+        for yf_sym in candidates:
+            df = _yf_hist(yf_sym, sd, ed, auto_adjust=False)
+            if df is not None and not df.empty:
+                yf_sym_used = yf_sym
+                break
         if isinstance(df, type(None)) or df.empty:
-            return ok({"success": True, "source": "yfinance", "data": [], "count": 0, "symbol": yf_sym, "note": "no data — market closed or symbol not found"})
+            return ok({"success": True, "source": "yfinance", "data": [], "count": 0, "symbol": candidates[0], "note": "no data — market closed or symbol not found"})
         df = df.reset_index()
         df.columns = [str(c).replace(" ", "_").lower() for c in df.columns]
         for col in df.columns:
             if df[col].dtype == "datetime64[ns]":
                 df[col] = df[col].astype(str)
         df = df.replace([float("inf"), float("-inf")], None).where(pd.notna(df), None)
+        # drop rows with missing close (unclosed/suspended days)
+        df = df[df["close"].notna()]
         rows = df.to_dict(orient="records")
-        return ok(_trim_result({"success": True, "source": "yfinance", "symbol": yf_sym, "data": rows, "count": len(rows)}, 80))
+        return ok(_trim_result({"success": True, "source": "yfinance", "symbol": yf_sym_used, "data": rows, "count": len(rows)}, max_rows))
     except Exception as e:
         return err(str(e), symbol=symbol, hint="Both akshare and yfinance failed")
 

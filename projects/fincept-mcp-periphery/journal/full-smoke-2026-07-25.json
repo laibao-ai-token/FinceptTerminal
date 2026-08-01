@@ -1,0 +1,283 @@
+{
+  "ts": "2026-07-25T07:20:27Z",
+  "elapsed_sec": 88.8,
+  "summary": [
+    {
+      "server": "market",
+      "pass": 10,
+      "fail": 0,
+      "skip": 0,
+      "tools_listed": 16
+    },
+    {
+      "server": "paper",
+      "pass": 2,
+      "fail": 0,
+      "skip": 0,
+      "tools_listed": 15
+    },
+    {
+      "server": "research",
+      "pass": 7,
+      "fail": 0,
+      "skip": 0,
+      "tools_listed": 14
+    },
+    {
+      "server": "fundamentals",
+      "pass": 6,
+      "fail": 0,
+      "skip": 0,
+      "tools_listed": 14
+    },
+    {
+      "server": "macro",
+      "pass": 4,
+      "fail": 1,
+      "skip": 0,
+      "tools_listed": 13
+    },
+    {
+      "server": "china",
+      "pass": 5,
+      "fail": 1,
+      "skip": 0,
+      "tools_listed": 10
+    }
+  ],
+  "totals": {
+    "pass": 34,
+    "fail": 2,
+    "skip": 0
+  },
+  "servers": {
+    "market": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "16 tools",
+        "n": 16
+      },
+      {
+        "tool": "market_quote",
+        "status": "PASS",
+        "detail": "{'symbol': 'AAPL', 'price': 333.02, 'change': 11.36, 'change_percent': 3.53, 'volume': 47402209, 'high': 334.37, 'low': 321.62, 'open': 322.04, 'previous_close'",
+        "n": null
+      },
+      {
+        "tool": "market_quote",
+        "status": "PASS",
+        "detail": "{'symbol': 'NVDA', 'price': 206.84, 'change': -1.92, 'change_percent': -0.92, 'volume': 110844026, 'high': 211.91, 'low': 204.81, 'open': 207.56, 'previous_clos",
+        "n": null
+      },
+      {
+        "tool": "batch_quotes",
+        "status": "PASS",
+        "detail": "Error executing tool batch_quotes: 1 validation error for batch_quotesArguments\nsymbols\n  Input should be a valid string [type=string_type, input_value=['AAPL',",
+        "n": null
+      },
+      {
+        "tool": "market_history",
+        "status": "PASS",
+        "detail": "[{'timestamp': 1782360000, 'open': 287.4, 'high': 288.8, 'low': 273.75, 'close': 275.15, 'volume': 107013700}, {'timestamp': 1782446400, 'open': 275.0, 'high': ",
+        "n": null
+      },
+      {
+        "tool": "symbol_search",
+        "status": "PASS",
+        "detail": "{'results': [{'symbol': 'AAPL', 'name': 'Apple Inc.', 'exchange': 'NMS', 'type': 'EQUITY', 'currency': 'USD', 'sector': '', 'industry': 'Consumer Electronics'},",
+        "n": null
+      },
+      {
+        "tool": "company_info",
+        "status": "PASS",
+        "detail": "{'symbol': 'AAPL', 'company_name': 'Apple Inc.', 'sector': 'Technology', 'industry': 'Consumer Electronics', 'market_cap': 4891182891008, 'pe_ratio': 38.9042, '",
+        "n": null
+      },
+      {
+        "tool": "financial_ratios",
+        "status": "PASS",
+        "detail": "{'symbol': 'AAPL', 'peRatio': 38.9042, 'forwardPE': 34.541164, 'priceToBook': 45.87052, 'priceToSales': 10.834576, 'pegRatio': 2.5882, 'debtToEquity': 79.548, '",
+        "n": null
+      },
+      {
+        "tool": "news_search",
+        "status": "PASS",
+        "detail": "{'query': 'Apple', 'resolved_symbol': 'AAPL', 'count': 3, 'data': [{'title': 'Why Tesla, Google, and other Mag 7 stocks are losing billions in valuation', 'desc",
+        "n": null
+      },
+      {
+        "tool": "historical_price",
+        "status": "PASS",
+        "detail": "Error executing tool historical_price: 1 validation error for historical_priceArguments\ntarget_date\n  Field required [type=missing, input_value={'symbol': 'AAPL",
+        "n": null
+      }
+    ],
+    "paper": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "15 tools",
+        "n": 15
+      },
+      {
+        "tool": "paper_list",
+        "status": "PASS",
+        "detail": "[{'id': 'da2c5fc4-e31a-4f0b-b0b2-ab253ca65186', 'name': 'demo-AAPL', 'initial_balance': 100000.0, 'balance': 100005.33836, 'currency': 'USD', 'leverage': 1.0, '",
+        "n": null
+      }
+    ],
+    "research": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "14 tools",
+        "n": 14
+      },
+      {
+        "tool": "backtest_strategies",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': {'provider': 'bt', 'strategies': {'portfolio': [{'id': 'equal_weight', 'name': 'Equal Weight', 'description': 'Equal-weight allocation",
+        "n": null
+      },
+      {
+        "tool": "list_indicators",
+        "status": "PASS",
+        "detail": "{'indicators': {'trend': [{'id': 'ma', 'name': 'Moving Average'}, {'id': 'ema', 'name': 'EMA'}, {'id': 'macd', 'name': 'MACD'}, {'id': 'adx', 'name': 'ADX'}, {'",
+        "n": null
+      },
+      {
+        "tool": "generate_signals",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': {'signals': {'AAPL': [{'date': '2024-01-02', 'signal': 0}, {'date': '2024-01-03', 'signal': 0}, {'date': '2024-01-04', 'signal': 0}, {",
+        "n": null
+      },
+      {
+        "tool": "signals_to_paper",
+        "status": "PASS",
+        "detail": "Error executing tool signals_to_paper: 1 validation error for signals_to_paperArguments\nportfolio_id\n  Field required [type=missing, input_value={'symbol': 'AAP",
+        "n": null
+      },
+      {
+        "tool": "quantstats_report",
+        "status": "PASS",
+        "detail": "Error executing tool quantstats_report: 1 validation error for quantstats_reportArguments\nsymbols\n  Field required [type=missing, input_value={'symbol': 'AAPL',",
+        "n": null
+      },
+      {
+        "tool": "calculate_indicator",
+        "status": "PASS",
+        "detail": "Error executing tool calculate_indicator: 1 validation error for calculate_indicatorArguments\nperiod\n  Input should be a valid string [type=string_type, input_v",
+        "n": null
+      }
+    ],
+    "fundamentals": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "14 tools",
+        "n": 14
+      },
+      {
+        "tool": "edgar_status",
+        "status": "PASS",
+        "detail": "{'available': None, 'init': None, 'identity': 'trade-agent@localhost'}",
+        "n": null
+      },
+      {
+        "tool": "edgar_company_info",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': {'ticker': 'AAPL', 'cik': 320193, 'name': 'Apple Inc.', 'tickers': ['AAPL'], 'industry': 'Electronic Computers', 'sic': '3571', 'fisca",
+        "n": null
+      },
+      {
+        "tool": "fx_latest",
+        "status": "PASS",
+        "detail": "{'amount': 1.0, 'base': 'USD', 'date': '2026-07-24', 'rates': {'CNY': 6.7722, 'EUR': 0.87897, 'GBP': 0.75053, 'HKD': 7.8426, 'JPY': 163.82}}",
+        "n": null
+      },
+      {
+        "tool": "fx_historical",
+        "status": "PASS",
+        "detail": "{'amount': 1.0, 'base': 'USD', 'date': '2024-06-03', 'rates': {'EUR': 0.92234, 'GBP': 0.7856, 'JPY': 156.88}}",
+        "n": null
+      },
+      {
+        "tool": "company_news_gnews",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': [{'title': 'My Week of Transparent Living With Apple\u2019s \u2018More Clear\u2019 Liquid Glass Setting - WIRED', 'description': 'My Week of Transpar",
+        "n": null
+      }
+    ],
+    "macro": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "13 tools",
+        "n": 13
+      },
+      {
+        "tool": "fred_status",
+        "status": "PASS",
+        "detail": "{'configured': False, 'hint': 'Set FRED_API_KEY for FRED series; World Bank tools work without a key.', 'key_series': {'cpi': 'CPIAUCSL', 'core_cpi': 'CPILFESL'",
+        "n": null
+      },
+      {
+        "tool": "fred_latest",
+        "status": "FAIL",
+        "detail": "FRED API key not configured. Set FRED_API_KEY environment variable.",
+        "n": null
+      },
+      {
+        "tool": "worldbank_indicator",
+        "status": "PASS",
+        "detail": "{'data': [{'indicator_id': 'NY.GDP.MKTP.KD.ZG', 'indicator_name': 'GDP growth (annual %)', 'country_id': 'US', 'country_name': 'United States', 'date': '2025', ",
+        "n": null
+      },
+      {
+        "tool": "worldbank_snapshot",
+        "status": "PASS",
+        "detail": "{'country_code': 'USA', 'indicators': {'gdp_growth': {'indicator_id': 'NY.GDP.MKTP.KD.ZG', 'indicator_name': 'GDP growth (annual %)', 'country_id': 'US', 'count",
+        "n": null
+      }
+    ],
+    "china": [
+      {
+        "tool": "_list_tools",
+        "status": "PASS",
+        "detail": "10 tools",
+        "n": 10
+      },
+      {
+        "tool": "china_status",
+        "status": "PASS",
+        "detail": "{'akshare': '1.18.64', 'scope': ['A-share / HK hist', 'HK famous spot', 'index hist', 'China policy rate (akshare macro)', 'Baidu economic news']}",
+        "n": null
+      },
+      {
+        "tool": "hk_hist",
+        "status": "PASS",
+        "detail": "{'success': True, 'source': 'yfinance', 'symbol': '1810.HK', 'data': [{'date': '2025-06-02 00:00:00+08:00', 'open': 50.0, 'high': 51.900001525878906, 'low': 49.",
+        "n": null
+      },
+      {
+        "tool": "a_share_hist",
+        "status": "FAIL",
+        "detail": "('Connection aborted.', RemoteDisconnected('Remote end closed connection without response'))",
+        "n": null
+      },
+      {
+        "tool": "index_hist",
+        "status": "PASS",
+        "detail": "{'success': True, 'source': 'yfinance', 'symbol': '000001.SS', 'data': [{'date': '2025-06-03 00:00:00+08:00', 'open': 3340.06689453125, 'high': 3366.9970703125,",
+        "n": null
+      },
+      {
+        "tool": "china_policy_rate",
+        "status": "PASS",
+        "detail": "{'success': True, 'data': {'count': 218, 'tail': [{'\u5546\u54c1': '\u4e2d\u56fd\u592e\u884c\u51b3\u8bae\u62a5\u544a', '\u65e5\u671f': '2006-03-01', '\u4eca\u503c': 5.58, '\u9884\u6d4b\u503c': nan, '\u524d\u503c': 5.58}, {'\u5546\u54c1': '\u4e2d\u56fd\u592e\u884c\u51b3\u8bae\u62a5\u544a', '\u65e5\u671f': '2006-04-",
+        "n": null
+      }
+    ]
+  }
+}

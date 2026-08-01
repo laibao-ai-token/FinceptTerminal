@@ -1,0 +1,27 @@
+{
+  "ts": "2026-07-21T17:11:42Z",
+  "steps": [
+    {
+      "step": "paper_list",
+      "ok": true,
+      "summary": "[{'id': 'da2c5fc4-e31a-4f0b-b0b2-ab253ca65186', 'name': 'demo-AAPL', 'initial_balance': 100000.0, 'balance': 100005.33836, 'currency': 'USD', 'leverage': 1.0, 'margin_mode': 'cross', 'fee_rate': 0.001, 'exchange': '', 'created_at': '2026-07-19T16:11:16Z'}, {'id': '5f5c7c56-6bd3-4cb7-a0fb-c9e06090684"
+    },
+    {
+      "step": "market_quote AAPL",
+      "ok": true,
+      "price": 328.5,
+      "summary": "{'symbol': 'AAPL', 'price': 328.5, 'change': 1.91, 'change_percent': 0.58, 'volume': 19915938, 'high': 329.6, 'low': 322.22, 'open': 323.35, 'previous_close': 326.59, 'timestamp': 1784653908, 'exchange': 'NMS'}"
+    },
+    {
+      "step": "signals_to_paper dry_run",
+      "ok": true,
+      "action": "hold",
+      "last_signal": {
+        "date": "2024-12-30",
+        "signal": 0
+      },
+      "summary": "{'symbol': 'AAPL', 'strategy': 'sma_crossover', 'last_signal': {'date': '2024-12-30', 'signal': 0}, 'action': 'hold', 'quantity': 5.0, 'dry_run': True, 'signal_count': 251, 'executed': False}"
+    }
+  ],
+  "all_ok": true
+}
