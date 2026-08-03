@@ -231,18 +231,30 @@ def company_news_gnews(
     language: str = "en",
     country: str = "US",
 ) -> str:
-    """Company/market news via GNews (fetch_company_news)."""
+    """Company/market news via GNews (fetch_company_news).
+    Chinese queries auto-fallback to zh/CN source when the default yields nothing."""
+    import json as _json
+
+    def _parse(raw):
+        if isinstance(raw, str):
+            try:
+                return _json.loads(raw)
+            except Exception:
+                return {"raw": raw[:2000]}
+        return raw
+
     try:
         from fetch_company_news import fetch_company_news
         raw = fetch_company_news(query, int(max_results), period, language, country)
-        # function returns JSON string
-        if isinstance(raw, str):
-            import json as _json
-            try:
-                return ok(_json.loads(raw))
-            except Exception:
-                return ok({"raw": raw[:2000]})
-        return ok(raw)
+        data = _parse(raw)
+        has_cn = any('\u4e00' <= ch <= '\u9fff' for ch in query)
+        if has_cn and isinstance(data, dict) and data.get("count") == 0:
+            raw2 = fetch_company_news(query, int(max_results), period, "zh", "CN")
+            data2 = _parse(raw2)
+            if isinstance(data2, dict) and data2.get("count", 0) > 0:
+                data2["note"] = "fetched from zh/CN source (en source empty for Chinese query)"
+                data = data2
+        return ok(data)
     except Exception as e:
         return err(str(e), query=query)
 

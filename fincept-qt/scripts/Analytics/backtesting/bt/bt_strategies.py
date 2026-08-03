@@ -324,8 +324,21 @@ def _vwap_calc(high, low, close, volume):
 
 _BT_AVAILABLE = False
 try:
-    import bt as _bt
-    _BT_AVAILABLE = True
+    # The local Analytics/backtesting/bt/ module dir shadows the installed
+    # bt package (its __init__.py has no algos); load the real one from
+    # site-packages by temporarily dropping this dir AND its parent from
+    # sys.path (the parent dir also resolves the local bt/ subpackage).
+    import os as _os
+    import sys as _sys
+    _LOCAL_BT_DIR = _os.path.dirname(_os.path.abspath(__file__))
+    _LOCAL_BT_PARENT = _os.path.dirname(_LOCAL_BT_DIR)
+    _saved_path = list(_sys.path)
+    _sys.path = [p for p in _saved_path if p != _LOCAL_BT_DIR and p != _LOCAL_BT_PARENT]
+    try:
+        import bt as _bt
+        _BT_AVAILABLE = hasattr(_bt, 'algos')
+    finally:
+        _sys.path = _saved_path
 except ImportError:
     _bt = None
 

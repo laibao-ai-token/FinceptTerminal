@@ -25,6 +25,23 @@ if str(_BACKTESTING_DIR) not in sys.path:
 if str(_SCRIPT_DIR) not in sys.path:
     sys.path.insert(0, str(_SCRIPT_DIR))
 
+
+def _real_bt():
+    """Load the real 'bt' library from site-packages.
+
+    This module dir (Analytics/backtesting/bt/) shadows the installed bt
+    package — its __init__.py carries no algos — so temporarily drop the
+    local dir AND its parent from sys.path while importing the real library
+    (the parent dir also resolves the local bt/ subpackage).
+    """
+    saved = list(sys.path)
+    sys.path = [p for p in saved if p != str(_SCRIPT_DIR) and p != str(_BACKTESTING_DIR)]
+    try:
+        import bt as _bt_mod
+        return _bt_mod
+    finally:
+        sys.path = saved
+
 from base.base_provider import (
     BacktestingProviderBase,
     json_response,
@@ -54,7 +71,7 @@ class BtProvider(BacktestingProviderBase):
     @property
     def version(self) -> str:
         try:
-            import bt
+            bt = _real_bt()
             return getattr(bt, '__version__', '1.1.2')
         except ImportError:
             return '1.1.2-fallback'
@@ -79,7 +96,7 @@ class BtProvider(BacktestingProviderBase):
 
     def test_connection(self) -> Dict[str, Any]:
         try:
-            import bt
+            bt = _real_bt()
             return {'success': True, 'message': f'bt {self.version} available'}
         except ImportError:
             return {
@@ -146,7 +163,7 @@ class BtProvider(BacktestingProviderBase):
                          start_date, end_date, initial_capital, commission):
         """Try to run backtest using actual bt library."""
         try:
-            import bt
+            bt = _real_bt()
             import pandas as pd
             from bt_data import fetch_data
             from bt_strategies import get_strategy
