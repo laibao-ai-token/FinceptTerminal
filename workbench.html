@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>Fincept 交易工作台</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+html,body{height:100%;background:#0f1115;font-family:sans-serif}
+#divider{height:8px;background:#2a2e37;cursor:row-resize;display:flex;align-items:center;justify-content:center;color:#555;font-size:10px;user-select:none}
+#divider:hover{background:#3a4a63;color:#8ab4ff}
+iframe{width:100%;border:none;display:block}
+#top{height:55%}
+#bottom{height:calc(45% - 8px)}
+</style>
+</head>
+<body>
+<div id="top"><iframe id="chatFrame" src="http://64.83.17.49:8899/"></iframe></div>
+<div id="divider">↕ 拖动调整（上：对话 / 下：交易看板）</div>
+<div id="bottom"><iframe id="dashFrame" src="http://64.83.17.49/dashboard/"></iframe></div>
+
+<script>
+// 可拖拽分隔条
+const divider = document.getElementById('divider');
+const top = document.getElementById('top');
+let dragging = false;
+divider.addEventListener('mousedown', e => { dragging = true; document.body.style.cursor='row-resize'; });
+window.addEventListener('mousemove', e => {
+  if (!dragging) return;
+  const pct = Math.min(80, Math.max(20, e.clientY / window.innerHeight * 100));
+  top.style.height = pct + '%';
+  const dash = document.getElementById('bottom');
+  dash.style.height = 'calc(' + (100 - pct) + '% - 8px)';
+});
+window.addEventListener('mouseup', () => { dragging = false; document.body.style.cursor=''; });
+</script>
+</body>
+</html>
